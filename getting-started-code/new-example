@@ -1,0 +1,10 @@
+#!/usr/bin/env sh       
+
+if [ -d $1 ]
+then
+    echo "The example '$1' already exists!"
+else
+    cp -R template/ $1
+    chmod +w -R $1
+    echo "The example '$1' has been created!"
+fi

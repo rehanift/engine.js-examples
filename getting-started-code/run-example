@@ -1,0 +1,78 @@
+#!/usr/bin/env node
+
+var example_task_identifier = process.argv[2];
+
+var engine = require("engine.js").engine;
+
+var client, intake, cylinder, exhaust;
+
+var start_server = function(){
+  client = engine.client.create();
+  intake = engine.intake.create();
+  cylinder = engine.cylinder.create();
+  exhaust = engine.exhaust.create();
+};
+
+var stop_server = function(){
+  client.close();
+  intake.close();
+  cylinder.close();
+  exhaust.close();
+};
+
+var load_example_task = function(task, example){
+  var fs = require("fs");
+  
+  try {
+    var context_path = __dirname + "/" + example + "/context.js";
+    var context = fs.readFileSync(context_path, "utf-8");
+  } catch (e) {
+    throw new Error("Could not find: " + context_path);
+  }
+  
+  try {
+    var code_path = __dirname + "/" + example + "/code.js";
+    var code = fs.readFileSync(code_path, "utf-8");
+  } catch (e) {
+    throw new Error("Could not find: " + code_path);
+  }
+
+  try {
+    var locals_path = "./" + example + "/locals";
+    var locals = require(locals_path);   
+  } catch (e) {
+    throw new Error("Could not find: " + locals_path);
+  }
+  
+  task.setContext(context);
+  task.setCode(code);
+  task.setLocals(locals);
+
+};
+
+start_server();
+
+var task = client.createTask();
+//load_basic(task);
+load_example_task(task, example_task_identifier);
+
+
+var load_task_formatter = function(example_identifier, cb){
+  var formatter = require("./" + example_identifier + "/formatter");
+
+  return function(err, response){
+    formatter(err, response);
+    cb();
+  };
+};
+
+var task_formatter = load_task_formatter(example_task_identifier, function(){
+  stop_server();
+});
+
+task.on("eval", task_formatter);
+
+task.run();
+
+
+
